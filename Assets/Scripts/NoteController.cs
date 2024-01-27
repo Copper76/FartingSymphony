@@ -1,67 +1,140 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
 
+[System.Serializable]
+public struct NoteInfo
+{
+    public int noteDir;
+    public bool fartNote;
+    public bool longNote;
+    public float duration;
+    public float interval;
+
+    public NoteInfo(int noteDir, bool fartNote, bool longNote, float interval)
+    {
+        this.noteDir = noteDir;
+        this.fartNote = fartNote;
+        this.longNote = longNote;
+        this.duration = -1.0f;
+        this.interval = interval;
+    }
+
+    public NoteInfo(int noteDir, bool fartNote, bool longNote, float duration, float interval)
+    {
+        this.noteDir = noteDir;
+        this.fartNote = fartNote;
+        this.longNote = longNote;
+        this.duration = duration;
+        this.interval = interval;
+    }
+
+    public NoteInfo(float duration)
+    {
+        this.noteDir = 0;
+        this.fartNote = true;
+        this.longNote = true;
+        this.duration = duration;
+        this.interval = 1.0f;
+    }
+}
 public class NoteController : MonoBehaviour
 {
-    [SerializeField] private GameObject pointer;
-    [SerializeField] private GameObject leftBar;
-    [SerializeField] private GameObject rightBar;
+    [SerializeField] private GameObject notePrefab;
+    private GameObject pointer;
+    [SerializeField] private Transform noteCollection;
 
-    public int[] notes;
+    public NoteInfo[] notes;
+
+    private List<GameObject> generatedNotes = new List<GameObject>();
 
     private float speed;
 
     private float rightEnd;
     private float leftEnd;
 
-    private float barTime;
-    private float nextUpdateTime;
-    private bool updateLeft;
+    [SerializeField] float introTime;
+    private float nextGen;
+    private float genInterval;
+
+    //current note info
+    [SerializeField] private NoteInfo currentNote;
+    [SerializeField] private bool onNote;
 
 
     private void Awake()
     {
-        speed = 10.0f;
+        speed = 5.0f;
         rightEnd = 22.0f;
         leftEnd = -22.0f;
-        updateLeft = true;
+        nextGen = introTime;
+        genInterval = 1.0f;
+        pointer = transform.GetChild(1).gameObject;
     }
 
     // Update is called once per frame
     void Update()
     {
-        //Moving pointer on the screen
-        if (pointer.transform.position.x>rightEnd)
+        if (Time.time > nextGen)
         {
-            pointer.transform.position = new Vector3(leftEnd, pointer.transform.position.y, -1.0f);
+            nextGen += genInterval;
+            GameObject newNote = Instantiate(notePrefab, noteCollection);
+            Collider2D noteCollider = newNote.AddComponent<BoxCollider2D>();
+            noteCollider.isTrigger = true;
+            Note newNoteInfo = newNote.AddComponent<Note>();
+            newNoteInfo.SetNoteInfo(new NoteInfo(Time.time));
+            newNote.transform.position = new Vector3(leftEnd - notePrefab.transform.localScale.x / 2, 0.0f, -1.0f);
+            generatedNotes.Add(newNote);
         }
-        pointer.transform.Translate(new Vector3(speed, 0.0f, 0.0f) * Time.deltaTime);
+        //Moving pointer on the screen
+        if (generatedNotes.Count > 0)
+        {
+            List<GameObject> markedNotes = new List<GameObject>();
+            foreach (GameObject note in generatedNotes)
+            {
+                if (note.transform.position.x - note.transform.localScale.x / 2 > rightEnd)
+                {
+                    markedNotes.Add(note);//mark notes for destruction
+                }
+                else
+                {
+                    note.transform.Translate(new Vector3(speed, 0.0f, 0.0f) * Time.deltaTime);
+                }
+            }
+
+            foreach (GameObject markedNote in markedNotes)
+            {
+                generatedNotes.Remove(markedNote);
+                Destroy(markedNote);
+            }
+
+            foreach (GameObject note in generatedNotes)
+            {
+                note.transform.Translate(new Vector3(speed, 0.0f, 0.0f) * Time.deltaTime);
+            }
+        }
 
         float currentTime = Time.time;
-        if (currentTime > nextUpdateTime)
-        {
-            nextUpdateTime += barTime;
-            UpdateBar(updateLeft);
-        }
     }
 
-    private void UpdateBar(bool updateLeft)
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        if (updateLeft)
-        {
-
-        }
-        else
-        {
-
-        }
-        updateLeft = !updateLeft;
+        Debug.Log(other.gameObject.name);
+        onNote = true;
+        Note note = other.gameObject.GetComponent<Note>();
+        currentNote = note.GetNoteInfo();
     }
 
-    public bool isSafe()
+    private void OnTriggerExit2D(Collider2D other)
     {
-        return true;
+        onNote = false;
+    }
+
+    public bool canFart()
+    {
+        if (!onNote) return false;
+        return currentNote.fartNote;
     }
 }
