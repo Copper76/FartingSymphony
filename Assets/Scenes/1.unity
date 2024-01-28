@@ -1133,6 +1133,7 @@ MonoBehaviour:
   notePrefab: {fileID: 3282419536739722268, guid: a23cb5ae48daef848bb03bc8ba5dc4ac, type: 3}
   noteCollection: {fileID: 525307184}
   notes: []
+  introTime: 5
   currentNote:
     noteDir: 0
     fartNote: 0

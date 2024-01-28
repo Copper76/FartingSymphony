@@ -19,9 +19,13 @@ public class PlayerController : MonoBehaviour
     private bool isFarting;
 
     private float fartingSpeed;
+
+    private int currentDir;
     // Start is called before the first frame update
     void Start()
     {
+        fartBar.value = 0.5f;
+        currentDir = -1;
         isFarting = false;
         fartingSpeed = 0.1f;
         rewardInterval = 0.1f;
@@ -42,28 +46,99 @@ public class PlayerController : MonoBehaviour
             isFarting = false;
         }
 
-        if (isFarting && fartBar.value > 0)
+        if (Input.GetButtonDown("Left") && currentDir == -1)
         {
-            fartBar.value -= fartingSpeed * Time.deltaTime;
-            if (Time.time > nextReward)
+            currentDir = 0;
+        }
+
+        if (Input.GetButtonUp("Left") && currentDir == 0)
+        {
+            currentDir = -1;
+        }
+
+        if (Input.GetButtonDown("Up") && currentDir == -1)
+        {
+            currentDir = 1;
+        }
+
+        if (Input.GetButtonUp("Up") && currentDir == 1)
+        {
+            currentDir = -1;
+        }
+
+        if (Input.GetButtonDown("Right") && currentDir == -1)
+        {
+            currentDir = 2;
+        }
+
+        if (Input.GetButtonUp("Right") && currentDir == 2)
+        {
+            currentDir = -1;
+        }
+
+        if (Input.GetButtonDown("Down") && currentDir == -1)
+        {
+            currentDir = 3;
+        }
+
+        if (Input.GetButtonUp("Down") && currentDir == 3)
+        {
+            currentDir = -1;
+        }
+
+        if (Time.time > noteController.introTime)
+        {
+            if (isFarting && fartBar.value > 0)
             {
                 if (noteController.canFart())
                 {
-                    points += rewardPoint;
-                    pointText.text = ("Score: " + points.ToString());
+                    fartBar.value -= fartingSpeed * Time.deltaTime;
                 }
                 else
                 {
-                    points -= rewardPoint;
-                    points = Mathf.Max(0, points);
-                    pointText.text = ("Score: " + points.ToString());
+                    fartBar.value += fartingSpeed * 1.5f * Time.deltaTime;
                 }
-                nextReward += rewardInterval;
+                /**
+                if (Time.time > nextReward)
+                {
+                    if (noteController.canFart())
+                    {
+                        points += rewardPoint;
+                        pointText.text = ("Score: " + points.ToString());
+                    }
+                    else
+                    {
+                        points -= rewardPoint;
+                        points = Mathf.Max(0, points);
+                        pointText.text = ("Score: " + points.ToString());
+                    }
+                    nextReward += rewardInterval;
+                }
+                **/
+            }
+            else if (fartBar.value < 1)
+            {
+                fartBar.value += fartingSpeed * Time.deltaTime;
+            }
+
+            if (fartBar.value >= 1.0f)
+            {
+                Lose();
             }
         }
-        else if (fartBar.value < 1)
+
+        if (noteController.MatchDir(currentDir) && Time.time > nextReward)
         {
-            fartBar.value += fartingSpeed * Time.deltaTime;
+            if (noteController.ConsumeNote())
+            {
+                points += rewardPoint * 5;
+            }
+            else
+            {
+                points += rewardPoint;
+            }
+            pointText.text = ("Score: " + points.ToString());
+            nextReward += rewardInterval;
         }
     }
 
